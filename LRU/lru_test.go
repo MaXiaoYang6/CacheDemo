@@ -3,13 +3,12 @@ package LRU
 import (
 	"reflect"
 	"testing"
-	"unsafe"
 )
 
 type String string
 
-func (s String) Size() int {
-	return int(unsafe.Sizeof(s))
+func (s String) Len() int {
+	return len(s)
 }
 
 func TestGet(t *testing.T) {
@@ -26,13 +25,13 @@ func TestGet(t *testing.T) {
 func TestCache_RemoveOldest(t *testing.T) {
 	k1, k2, k3 := "k1", "k2", "k3"
 	v1, v2, v3 := "v1", "v2", "v3"
-	size := unsafe.Sizeof(k1) + unsafe.Sizeof(k2) + unsafe.Sizeof(v1) + unsafe.Sizeof(v2)
+	size := len(k1 + k2 + v1 + v2)
 	lru := New(int64(size), nil)
 	lru.Add(k1, String(v1))
 	lru.Add(k2, String(v2))
 	lru.Add(k3, String(v3))
 
-	if _, ok := lru.Get("k1"); ok || lru.nBytes != 64 {
+	if _, ok := lru.Get("k1"); ok || lru.nBytes != int64(size) {
 		t.Fatalf("RemoveOldest key1 failed!")
 	}
 }
@@ -42,7 +41,7 @@ func TestOnEvicted(t *testing.T) {
 	callBack := func(key string, value Value) {
 		keys = append(keys, key)
 	}
-	lru := New(int64(64), callBack)
+	lru := New(int64(len("k1"+"v1"+"k2"+"v2")), callBack)
 	lru.Add("k1", String("v1"))
 	lru.Add("k2", String("v2"))
 	lru.Add("k3", String("v3"))

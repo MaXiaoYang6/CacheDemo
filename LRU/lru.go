@@ -2,7 +2,6 @@ package LRU
 
 import (
 	"container/list"
-	"unsafe"
 )
 
 // Cache is a LRU cache. It is not safe for concurrent access.
@@ -20,7 +19,7 @@ type Cache struct {
 
 // Value uses Size() to count how many bytes it takes
 type Value interface {
-	Size() int
+	Len() int
 }
 
 type entry struct {
@@ -43,12 +42,12 @@ func (c *Cache) Add(key string, value Value) {
 	if ele, ok := c.cache[key]; ok {
 		c.ll.MoveToFront(ele)
 		kv := ele.Value.(*entry)
-		c.nBytes += int64(value.Size()) - int64(kv.value.Size())
+		c.nBytes += int64(value.Len()) - int64(kv.value.Len())
 		kv.value = value
 	} else {
 		ele := c.ll.PushFront(&entry{key, value})
 		c.cache[key] = ele
-		c.nBytes += int64(value.Size()) + int64(unsafe.Sizeof(key))
+		c.nBytes += int64(value.Len()) + int64(len(key))
 	}
 	for c.maxBytes < c.nBytes {
 		c.RemoveOldest()
@@ -62,7 +61,7 @@ func (c *Cache) RemoveOldest() {
 		c.ll.Remove(ele)
 		kv := ele.Value.(*entry)
 		delete(c.cache, kv.key)
-		c.nBytes -= int64(unsafe.Sizeof(kv.key)) + int64(kv.value.Size())
+		c.nBytes -= int64(len(kv.key)) + int64(kv.value.Len())
 		if c.OnEvicted != nil {
 			c.OnEvicted(kv.key, kv.value)
 		}
